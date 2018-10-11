@@ -363,13 +363,12 @@ public class ConnectionHandler {
             int bytes;
             // Keep listening to the InputStream while connected
             while (true) {
-                Log.d("CONCCECTED", "run: AT THE MOMENT DEVICE IS CONNECTED" );
                 try {
                     // Read from the InputStream
                     bytes = mmInStream.read(buffer);
                     // Send the obtained bytes to the UI Activity
-                    //mHandler.obtainMessage(BluetoothChat.MESSAGE_READ, bytes, -1, buffer)
-                    //       .sendToTarget();
+                    mHandler.obtainMessage(MainActivity.MESSAGE_READ, bytes, -1, buffer)
+                           .sendToTarget();
                 } catch (IOException e) {
                     connectionLost();
                     break;
@@ -386,8 +385,8 @@ public class ConnectionHandler {
             try {
                 mmOutStream.write(buffer);
                 // Share the sent message back to the UI Activity
-               // mHandler.obtainMessage(BluetoothChat.MESSAGE_WRITE, -1, -1, buffer)
-               //         .sendToTarget();
+                mHandler.obtainMessage(MainActivity.MESSAGE_WRITE, -1, -1, buffer)
+                        .sendToTarget();
             } catch (IOException e) {
             }
         }

@@ -40,8 +40,13 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQUEST_CONNECT_DEVICE = 1;
     private static final int REQUEST_ENABLE_BT = 2;
     private static final int REQUEST_GAME_ACTIVITY = 3;
+
+    public static final int MESSAGE_STATE_CHANGE = 1;
+    public static final int MESSAGE_READ = 2;
+    public static final int MESSAGE_WRITE = 3;
     public static final int MESSAGE_DEVICE_NAME = 4;
     public static final int MESSAGE_TOAST = 5;
+
     final private int REQUEST_CODE_ASK_ACCESS_FINE_LOCTION = 124;
 
     private String mConnectedDeviceName = null;
@@ -234,6 +239,18 @@ public class MainActivity extends AppCompatActivity {
                             + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
                     defineContent();
                     break;
+                case MESSAGE_READ:
+                    byte[] readBuf = (byte[]) msg.obj;
+                    // construct a string from the valid bytes in the buffer
+                    String readMessage = new String(readBuf, 0, msg.arg1);
+                    Toast.makeText(getApplicationContext(), readMessage, Toast.LENGTH_SHORT).show();
+                    break;
+                case MESSAGE_WRITE:
+                    byte[] writeBuf = (byte[]) msg.obj;
+                    // construct a string from the valid bytes in the buffer
+                    String writeMessage = new String(writeBuf);
+                    Toast.makeText(getApplicationContext(), writeMessage, Toast.LENGTH_SHORT).show();
+                    break;
                 case MESSAGE_TOAST:
                     Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                             Toast.LENGTH_SHORT).show();
@@ -294,16 +311,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void StartGame(View view) {
-        if(connectionHandler.mState == 3) {
-            /*
-            Intent OpenGame= new Intent(this, GameActivity.class);
-            String data = mConnectedDeviceName;
-            OpenGame.putExtra("Connected Device name", data);
-            startActivityForResult(OpenGame, REQUEST_GAME_ACTIVITY);*/
-            defineContent();
-        } else {
-            Toast.makeText(this,"U cant do that", Toast.LENGTH_SHORT).show();
-        }
+        Toast.makeText(this,"Currently doesn't do anything.", Toast.LENGTH_SHORT).show();
     }
 
     //No time for good coding conventions, so gotta do it this way.
@@ -347,13 +355,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initEmoji() {
+        NUMBER_OF_ROUNDS = 5;
+        progressIncrement = 0;
+        progressTotal = 0;
+        scoreIndex= 0;
+
         initializeEmojis(); //fill Arraylist<myEmoji> emojis
 
         //Progressbar stuff
         progressBar.setMax(100);
         progressIncrement = 100/NUMBER_OF_ROUNDS;
 
-        //elapsedTime = 0;
         time.start();
 
         final ArrayList<EmojiButton> emojiButtons = new ArrayList<>();
@@ -424,13 +436,17 @@ public class MainActivity extends AppCompatActivity {
         answerSeconds = ((score - time.getBase()) / 1000) % 60;
         //Log.d("score", "addScore: seconds: "+ answerSeconds);
         scoreArr.add(answerSeconds);
+
+        // Send the data to connected device.
+        String out = "Eneme score is " + answerSeconds;
+        connectionHandler.write(out.getBytes());
+
         if (scoreArr.size() > 5) {
             scoreArr.remove(0);
             scoreIndex--;
         }
         scores.setText("Last 5 scores in seconds\n");
         for (Long answer: scoreArr  ) {
-
             scores.append(answer+", ");
         }
         scoreIndex++;
@@ -483,6 +499,5 @@ public class MainActivity extends AppCompatActivity {
         for (int i = 0; i < emojiNameArr.length; i++) {
             emojis.get(i).addEmoji(emojiArray[i]);
         }
-
     }
 }
