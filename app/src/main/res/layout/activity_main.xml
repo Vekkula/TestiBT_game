@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity"
+    android:background="@color/background">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/game_name"
+        android:textSize="50dp"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:textColor="@color/colorPrimaryDark"
+        android:id="@+id/header"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@+id/header"
+        android:text="Disconnect \nDisconnects you from your current connection and makes you available for new connection\n
+        \nMake Visible\nSets your device to be seen by others \n\nFind and Connect\nOpens a menu where you can search for new devices and connect to them  \n\nPlay\nOnce you have connected with someone. You can press play to start the game with the player you are connected with"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        app:layout_constraintBottom_toTopOf="@+id/disconnect_button"
+        android:autoSizeTextType="uniform"/>
+
+    <Button
+        android:id="@+id/connect_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="OpenConnect"
+        android:text="Find and connect"
+        app:layout_constraintBottom_toTopOf="@+id/gameButton"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:textColor="@color/colorPrimaryDark"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="MakeVisible"
+        android:text="Make Visible"
+        app:layout_constraintBottom_toTopOf="@+id/connect_button"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:id="@+id/visible_button"
+        android:textColor="@color/colorPrimaryDark"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="disconnect"
+        android:text="Disconnect"
+        android:id="@+id/disconnect_button"
+        app:layout_constraintBottom_toTopOf="@+id/visible_button"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        android:textColor="@color/colorPrimaryDark"/>
+
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:onClick="StartGame"
+        android:text="Play"
+        android:id="@+id/gameButton"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+</android.support.constraint.ConstraintLayout>
