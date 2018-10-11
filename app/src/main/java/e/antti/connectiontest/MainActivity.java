@@ -110,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
     MyEmoji answer = new MyEmoji(); //answer MyEmoji-object you can compare your choice against
     String lastAnswer = "";
     Random rng = new Random();
-    long elapsedTime; // time, is reseted on a correct answer
+    long elapsedTime;
 
     //scoredata
     ArrayList<Long> scoreArr = new ArrayList<>();
@@ -237,19 +237,21 @@ public class MainActivity extends AppCompatActivity {
                     mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
                     Toast.makeText(getApplicationContext(), "Connected to "
                             + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                    resetTimer();
                     defineContent();
                     break;
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    Toast.makeText(getApplicationContext(), readMessage, Toast.LENGTH_SHORT).show();
+                    //0Toast.makeText(getApplicationContext(), readMessage, Toast.LENGTH_SHORT).show();
+                    check(readMessage);
                     break;
                 case MESSAGE_WRITE:
                     byte[] writeBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String writeMessage = new String(writeBuf);
-                    Toast.makeText(getApplicationContext(), writeMessage, Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getApplicationContext(), writeMessage, Toast.LENGTH_SHORT).show();
                     break;
                 case MESSAGE_TOAST:
                     Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
@@ -354,12 +356,21 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void initEmoji() {
-        NUMBER_OF_ROUNDS = 5;
-        progressIncrement = 0;
-        progressTotal = 0;
-        scoreIndex= 0;
+    private void check(String readMessage) {
+        if (readMessage.contains("END")) {
+            Toast.makeText(getApplicationContext(),"You lose!",Toast.LENGTH_SHORT).show();
+            endGame();
+        }
+    }
 
+    //What happens after the game.
+    private void endGame() {
+        connectionHandler.start();
+        defineContent();
+    }
+
+    private void initEmoji() {
+        resetValues();
         initializeEmojis(); //fill Arraylist<myEmoji> emojis
 
         //Progressbar stuff
@@ -392,8 +403,6 @@ public class MainActivity extends AppCompatActivity {
                 if (buttonText == answer.emoji){
                     time.stop();
                     Log.d("click", "onClick: Correct Answer Elapsed time: "+elapsedTime);
-                    Toast toast = Toast.makeText(getApplicationContext(),"You win!!! ",Toast.LENGTH_SHORT);
-                    toast.show();
                     randomizeEmoji(emojiButtons);
                     //reset timer
                     addScore(elapsedTime);
@@ -402,8 +411,6 @@ public class MainActivity extends AppCompatActivity {
                     time.start();
                 }else{
                     Log.d("click", "onClick: Wrong Anwer  Elapsed time: "+elapsedTime);
-                    Toast toast = Toast.makeText(getApplicationContext(),"you lose!!!",Toast.LENGTH_SHORT);
-                    toast.show();
                 }
             }
         };
@@ -437,10 +444,6 @@ public class MainActivity extends AppCompatActivity {
         //Log.d("score", "addScore: seconds: "+ answerSeconds);
         scoreArr.add(answerSeconds);
 
-        // Send the data to connected device.
-        String out = "Eneme score is " + answerSeconds;
-        connectionHandler.write(out.getBytes());
-
         if (scoreArr.size() > 5) {
             scoreArr.remove(0);
             scoreIndex--;
@@ -448,6 +451,12 @@ public class MainActivity extends AppCompatActivity {
         scores.setText("Last 5 scores in seconds\n");
         for (Long answer: scoreArr  ) {
             scores.append(answer+", ");
+        }
+
+        if(scoreArr.size() == 5) {
+            Toast.makeText(getApplicationContext(),"You win!",Toast.LENGTH_SHORT).show();
+            String out = "END";
+            connectionHandler.write(out.getBytes());
         }
         scoreIndex++;
     }
@@ -500,4 +509,24 @@ public class MainActivity extends AppCompatActivity {
             emojis.get(i).addEmoji(emojiArray[i]);
         }
     }
+
+    private void resetTimer() {
+        time.stop();
+        time.setBase(SystemClock.elapsedRealtime());
+        time.start();
+    }
+
+    private void resetValues() {
+        NUMBER_OF_ROUNDS = 5;
+        progressIncrement = 0;
+        progressTotal = 0;
+        scoreIndex= 0;
+        scoreArr.clear();
+        answerSeconds = 0;
+        progressBar.setProgress(0);
+        scores.setText("Last 5 scores in seconds\n");
+    }
 }
+
+//TODO
+//Rematch, time penalty
