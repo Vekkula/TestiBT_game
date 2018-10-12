@@ -116,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
     ArrayList<Long> scoreArr = new ArrayList<>();
     int scoreIndex= 0;
     long answerSeconds;
+    int timePenalty;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -411,6 +412,8 @@ public class MainActivity extends AppCompatActivity {
                     time.start();
                 }else{
                     Log.d("click", "onClick: Wrong Anwer  Elapsed time: "+elapsedTime);
+                    addPenalty();
+
                 }
             }
         };
@@ -425,7 +428,7 @@ public class MainActivity extends AppCompatActivity {
 
                 long minutes = ((SystemClock.elapsedRealtime() - time.getBase())/1000) / 60;
                 long seconds = ((SystemClock.elapsedRealtime() - time.getBase())/1000) % 60;
-                elapsedTime = SystemClock.elapsedRealtime();
+                elapsedTime = SystemClock.elapsedRealtime() + (1000*timePenalty);
                 Log.d("chronometer", "onChronometerTick: " + minutes + " : " + seconds);
 
 /*                long minutes = ((elapsedTime - time.getBase()) / 1000) / 60;
@@ -459,6 +462,11 @@ public class MainActivity extends AppCompatActivity {
             connectionHandler.write(out.getBytes());
         }
         scoreIndex++;
+    }
+
+    private void addPenalty(){
+        timePenalty++;
+        time.setBase(SystemClock.elapsedRealtime() -(timePenalty*1000));
     }
 
     private void randomizeEmoji(ArrayList<EmojiButton> emojiButtons){
