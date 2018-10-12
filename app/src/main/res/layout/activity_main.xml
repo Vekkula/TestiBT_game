@@ -121,16 +121,6 @@
         app:layout_constraintLeft_toRightOf="@id/timeView"
         app:layout_constraintRight_toRightOf="parent"/>
 
-    <ProgressBar
-        android:visibility="gone"
-        android:id="@+id/progress"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        style="@android:style/Widget.Holo.ProgressBar.Horizontal"
-        app:layout_constraintTop_toBottomOf="@id/timeView"
-        android:paddingLeft="10sp"
-        android:paddingRight="10sp"/>
-
     <GridLayout
         android:visibility="gone"
         android:id="@+id/grid"
@@ -139,7 +129,7 @@
         android:layout_gravity="center"
         android:columnCount="3"
         android:minHeight="50pt"
-        app:layout_constraintTop_toBottomOf="@+id/progress"
+        app:layout_constraintTop_toBottomOf="@+id/time"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintLeft_toLeftOf="parent">
 
@@ -199,13 +189,14 @@
 
     </GridLayout>
 
-    <TextView
+    <ProgressBar
         android:visibility="gone"
-        android:text="Last 5 scores in seconds\n"
-        android:id="@+id/scores"
+        android:id="@+id/progress"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        style="@android:style/Widget.Holo.ProgressBar.Horizontal"
         app:layout_constraintTop_toBottomOf="@id/grid"
-        android:textSize="32sp" />
+        android:paddingLeft="10sp"
+        android:paddingRight="10sp"/>
 
 </android.support.constraint.ConstraintLayout>

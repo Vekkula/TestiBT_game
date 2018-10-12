@@ -3,8 +3,10 @@ package e.antti.connectiontest;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Path;
@@ -34,6 +36,7 @@ import java.util.Collections;
 import java.util.Random;
 
 import static android.provider.Settings.Global.DEVICE_NAME;
+import static java.security.AccessController.getContext;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -72,10 +75,12 @@ public class MainActivity extends AppCompatActivity {
     TextView timeView;
     ProgressBar progressBar;
     GridLayout gridLayout;
-    TextView scores;
     Chronometer time;
     EmojiTextView emojiView;
     EmojiButton ans1,ans2,ans3,ans4,ans5,ans6,ans7,ans8,ans9;
+
+    private boolean rematchDialog = false;
+    private boolean otherPlayerRematch = false;
 
     public static void setNumberOfRounds(int numberOfRounds) {
         NUMBER_OF_ROUNDS = numberOfRounds;
@@ -83,6 +88,9 @@ public class MainActivity extends AppCompatActivity {
     static int NUMBER_OF_ROUNDS = 5;
     int progressIncrement = 0;// 100/NUMBEROFROUNDS
     int progressTotal = 0;
+
+    private int timePenalty = 0;
+    private final int TIME_PENALTY_AMOUNT = 1000;
 
     //highly professional data-arrays
     String[] emojiArray = {
@@ -95,7 +103,6 @@ public class MainActivity extends AppCompatActivity {
             "💜","👊","💋","😘","😜","😵","🙏","👋","🚽","💃",
             "💎","🚀","🌙","🎁","⛄","🌊","⛵","🏀","🎱","💰",
             "👶","👸","🐰","🐷","🐍","🐫","🔫","👄","🚲","🍉","💛","💚"};
-    String[] emojiCodeArr = {"U+270C","U+1F602","U+1F61D","U+1F601","U+1F631","U+1F449"};
     String[] emojiNameArr ={"victory hand","face with tears of joy","squinting face with tongue",
             "beaming face with smiling eyes","face screaming in fear","backhand index pointing right",
             "raising hands","clinking beer mugs","fire","rainbow","sun","balloon","rose","lipstick",
@@ -138,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
         time = findViewById(R.id.time);
         progressBar = findViewById(R.id.progress);
         gridLayout = findViewById(R.id.grid);
-        scores = findViewById(R.id.scores);
         ans1 = findViewById(R.id.answer1);
         ans2 = findViewById(R.id.answer2);
         ans3 = findViewById(R.id.answer3);
@@ -149,7 +155,7 @@ public class MainActivity extends AppCompatActivity {
         ans8 = findViewById(R.id.answer8);
         ans9 = findViewById(R.id.answer9);
 
-        //gameButton.setEnabled(false);
+        gameButton.setEnabled(false);
 
         mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
@@ -210,7 +216,6 @@ public class MainActivity extends AppCompatActivity {
                     BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
                     // Attempt to connect to the device
                     connectionHandler.connect(device);
-                    gameButton.setEnabled(true);
                 }
                 break;
             case REQUEST_ENABLE_BT:
@@ -237,14 +242,13 @@ public class MainActivity extends AppCompatActivity {
                     mConnectedDeviceName = msg.getData().getString(DEVICE_NAME);
                     Toast.makeText(getApplicationContext(), "Connected to "
                             + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                    resetTimer();
-                    defineContent();
+                    gameButton.setEnabled(true);
                     break;
                 case MESSAGE_READ:
                     byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
                     String readMessage = new String(readBuf, 0, msg.arg1);
-                    //0Toast.makeText(getApplicationContext(), readMessage, Toast.LENGTH_SHORT).show();
+                    //Toast.makeText(getApplicationContext(), readMessage, Toast.LENGTH_SHORT).show();
                     check(readMessage);
                     break;
                 case MESSAGE_WRITE:
@@ -256,6 +260,8 @@ public class MainActivity extends AppCompatActivity {
                 case MESSAGE_TOAST:
                     Toast.makeText(getApplicationContext(), msg.getData().getString(TOAST),
                             Toast.LENGTH_SHORT).show();
+                    gameButton.setEnabled(false);
+                    resetValues();
                     defineContent();
                     break;
             }
@@ -309,16 +315,34 @@ public class MainActivity extends AppCompatActivity {
     public void disconnect(View view) {
         connectionHandler.start();
         defineContent();
-        //gameButton.setEnabled(false);
+        gameButton.setEnabled(false);
     }
 
     public void StartGame(View view) {
-        Toast.makeText(this,"Currently doesn't do anything.", Toast.LENGTH_SHORT).show();
+        connectionHandler.write("PLAY".getBytes());
+        resetValues();
+        defineContent();
     }
 
     //No time for good coding conventions, so gotta do it this way.
     private void defineContent() {
-        if(connectionHandler.mState == 3) {
+        if(rematchDialog) {
+            //Connection elements
+            headerView.setVisibility(View.GONE);
+            infoView.setVisibility(View.GONE);
+            visibleButton.setVisibility(View.GONE);
+            connectButton.setVisibility(View.GONE);
+            disconnectButton.setVisibility(View.GONE);
+            gameButton.setVisibility(View.GONE);
+
+            //Game elements
+            mView.setVisibility(View.GONE);
+            emojiView.setVisibility(View.GONE);
+            timeView.setVisibility(View.GONE);
+            time.setVisibility(View.GONE);
+            progressBar.setVisibility(View.GONE);
+            gridLayout.setVisibility(View.GONE);
+        } else if(connectionHandler.mState == 3) {
             //Connection elements
             headerView.setVisibility(View.GONE);
             infoView.setVisibility(View.GONE);
@@ -334,7 +358,6 @@ public class MainActivity extends AppCompatActivity {
             time.setVisibility(View.VISIBLE);
             progressBar.setVisibility(View.VISIBLE);
             gridLayout.setVisibility(View.VISIBLE);
-            scores.setVisibility(View.VISIBLE);
             initEmoji();
         } else {
             //Connection elements
@@ -352,20 +375,23 @@ public class MainActivity extends AppCompatActivity {
             time.setVisibility(View.GONE);
             progressBar.setVisibility(View.GONE);
             gridLayout.setVisibility(View.GONE);
-            scores.setVisibility(View.GONE);
         }
     }
 
     private void check(String readMessage) {
         if (readMessage.contains("END")) {
-            Toast.makeText(getApplicationContext(),"You lose!",Toast.LENGTH_SHORT).show();
-            endGame();
+            connectionHandler.start();
+        } else if (readMessage.contains("REMATCH")) {
+            resetValues();
+            rematchDialog = false;
+            otherPlayerRematch = true;
+        } else if (readMessage.contains("ENEMYWON")) {
+            showAlert("Oh bummer - you lost! Would you like to rematch?");
+        } else if (readMessage.contains("READY")) {
+            otherPlayerRematch = true;
+        } else if (readMessage.contains("PLAY")) {
+            resetValues();
         }
-    }
-
-    //What happens after the game.
-    private void endGame() {
-        connectionHandler.start();
         defineContent();
     }
 
@@ -398,19 +424,14 @@ public class MainActivity extends AppCompatActivity {
                 EmojiButton b = (EmojiButton)v;
                 String buttonText = b.getText().toString();
                 lastAnswer = answer.name;
-
-                //Log.d("click", "onClick: buttontext: " + buttonText + " answer.name: " + answer.name);
                 if (buttonText == answer.emoji){
-                    time.stop();
                     Log.d("click", "onClick: Correct Answer Elapsed time: "+elapsedTime);
                     randomizeEmoji(emojiButtons);
                     //reset timer
                     addScore(elapsedTime);
-
-                    time.setBase(SystemClock.elapsedRealtime());
-                    time.start();
                 }else{
                     Log.d("click", "onClick: Wrong Anwer  Elapsed time: "+elapsedTime);
+                    addPenalty();
                 }
             }
         };
@@ -425,15 +446,15 @@ public class MainActivity extends AppCompatActivity {
 
                 long minutes = ((SystemClock.elapsedRealtime() - time.getBase())/1000) / 60;
                 long seconds = ((SystemClock.elapsedRealtime() - time.getBase())/1000) % 60;
-                elapsedTime = SystemClock.elapsedRealtime();
-                Log.d("chronometer", "onChronometerTick: " + minutes + " : " + seconds);
-
-/*                long minutes = ((elapsedTime - time.getBase()) / 1000) / 60;
-                long seconds = ((elapsedTime - time.getBase()) / 1000) % 60;*/
-                //elapsedTime = elapsedTime + 1000;
+                elapsedTime = SystemClock.elapsedRealtime() + (timePenalty * TIME_PENALTY_AMOUNT);
                 Log.d("chronometer", "onChronometerTick: " + minutes + " : " + seconds);
             }
         });
+    }
+
+    private void addPenalty() {
+        timePenalty++;
+        time.setBase(SystemClock.elapsedRealtime() - (timePenalty * TIME_PENALTY_AMOUNT));
     }
 
     private void addScore(long score){
@@ -441,22 +462,11 @@ public class MainActivity extends AppCompatActivity {
         progressBar.setProgress(progressTotal);
         //long minutes = ((score - time.getBase()) / 1000) / 60;
         answerSeconds = ((score - time.getBase()) / 1000) % 60;
-        //Log.d("score", "addScore: seconds: "+ answerSeconds);
         scoreArr.add(answerSeconds);
 
-        if (scoreArr.size() > 5) {
-            scoreArr.remove(0);
-            scoreIndex--;
-        }
-        scores.setText("Last 5 scores in seconds\n");
-        for (Long answer: scoreArr  ) {
-            scores.append(answer+", ");
-        }
-
         if(scoreArr.size() == 5) {
-            Toast.makeText(getApplicationContext(),"You win!",Toast.LENGTH_SHORT).show();
-            String out = "END";
-            connectionHandler.write(out.getBytes());
+            showAlert("Congratulations - You won! Would you like to rematch?");
+            connectionHandler.write("ENEMYWON".getBytes());
         }
         scoreIndex++;
     }
@@ -485,7 +495,6 @@ public class MainActivity extends AppCompatActivity {
 
     //makes an arraylist of n unique integers, n = emojiNameArr.length
     private ArrayList<Integer> randomNumbers(){
-        int i;
         ArrayList<Integer> arrInt = new ArrayList<>();
         for(int a = 0; a<emojiNameArr.length; a++){
             arrInt.add(a);
@@ -517,16 +526,58 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void resetValues() {
-        NUMBER_OF_ROUNDS = 5;
+        resetTimer();
+        rematchDialog = false;
+        otherPlayerRematch = false;
+        timePenalty = 0;
         progressIncrement = 0;
         progressTotal = 0;
         scoreIndex= 0;
         scoreArr.clear();
         answerSeconds = 0;
         progressBar.setProgress(0);
-        scores.setText("Last 5 scores in seconds\n");
+    }
+
+    public void showAlert(final String str) {
+        rematchDialog = true;
+        defineContent();
+        final DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                switch (which) {
+                    case DialogInterface.BUTTON_POSITIVE: {
+                        try {
+                            if(otherPlayerRematch) {
+                                rematchDialog = false;
+                                resetValues();
+                                connectionHandler.write("REMATCH".getBytes());
+                            } else {
+                                connectionHandler.write("READY".getBytes());
+                            }
+
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                        break;
+                    }
+                    case DialogInterface.BUTTON_NEGATIVE: {
+                        rematchDialog = false;
+                        connectionHandler.write("END".getBytes());
+                        break;
+                    }
+
+                }
+                defineContent();
+            }
+        };
+        runOnUiThread(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
+                        builder.setMessage(str).setPositiveButton("YES", dialogClickListener).setNegativeButton("NO", dialogClickListener).show();
+                    }
+                }
+        );
     }
 }
-
-//TODO
-//Rematch, time penalty
